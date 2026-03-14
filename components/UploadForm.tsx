@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Upload, ImageIcon } from "lucide-react";
@@ -32,6 +32,7 @@ import {
   saveBookSegments,
 } from "@/lib/actions/book.actions";
 import { useRouter } from "next/navigation";
+import { parsePDFFile } from "@/lib/utils";
 import { upload } from "@vercel/blob/client";
 
 const UploadForm = () => {
@@ -62,6 +63,8 @@ const UploadForm = () => {
 
     setIsSubmitting(true);
 
+    // PostHog -> Track Book Uploads...
+
     try {
       const existsCheck = await checkBookExists(data.title);
 
@@ -75,13 +78,22 @@ const UploadForm = () => {
       const fileTitle = data.title.replace(/\s+/g, "-").toLowerCase();
       const pdfFile = data.pdfFile;
 
+      const parsedPDF = await parsePDFFile(pdfFile);
+
+      if (parsedPDF.content.length === 0) {
+        toast.error(
+          "Failed to parse PDF. Please try again with a different file.",
+        );
+        return;
+      }
+
       const uploadedPdfBlob = await upload(fileTitle, pdfFile, {
         access: "public",
         handleUploadUrl: "/api/upload",
         contentType: "application/pdf",
       });
 
-      let coverUrl = "";
+      let coverUrl: string;
 
       if (data.coverImage) {
         const coverFile = data.coverImage;
@@ -94,6 +106,16 @@ const UploadForm = () => {
             contentType: coverFile.type,
           },
         );
+        coverUrl = uploadedCoverBlob.url;
+      } else {
+        const response = await fetch(parsedPDF.cover);
+        const blob = await response.blob();
+
+        const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+          contentType: "image/png",
+        });
         coverUrl = uploadedCoverBlob.url;
       }
 
@@ -110,9 +132,9 @@ const UploadForm = () => {
 
       if (!book.success) {
         toast.error((book.error as string) || "Failed to create book");
-        if (book.isBillingError) {
-          router.push("/subscriptions");
-        }
+        // if (book.isBillingError) {
+        //   router.push("/subscriptions");
+        // }
         return;
       }
 
@@ -123,10 +145,22 @@ const UploadForm = () => {
         return;
       }
 
+      const segments = await saveBookSegments(
+        book.data._id,
+        userId,
+        parsedPDF.content,
+      );
+
+      if (!segments.success) {
+        toast.error("Failed to save book segments");
+        throw new Error("Failed to save book segments");
+      }
+
       form.reset();
       router.push("/");
     } catch (error) {
       console.error(error);
+
       toast.error("Failed to upload book. Please try again later.");
     } finally {
       setIsSubmitting(false);
@@ -176,7 +210,7 @@ const UploadForm = () => {
                   <FormControl>
                     <Input
                       className="form-input"
-                      placeholder="Rich Dad Poor Dad"
+                      placeholder="ex: Rich Dad Poor Dad"
                       {...field}
                       disabled={isSubmitting}
                     />
@@ -196,7 +230,7 @@ const UploadForm = () => {
                   <FormControl>
                     <Input
                       className="form-input"
-                      placeholder="Robert Kiyosaki"
+                      placeholder="ex: Robert Kiyosaki"
                       {...field}
                       disabled={isSubmitting}
                     />
@@ -215,7 +249,7 @@ const UploadForm = () => {
                   <FormLabel className="form-label">
                     Choose Assistant Voice
                   </FormLabel>
-                  <FormControl className="mt-4">
+                  <FormControl>
                     <VoiceSelector
                       value={field.value}
                       onChange={field.onChange}
