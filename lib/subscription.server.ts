@@ -4,14 +4,14 @@ import { PlanType } from "./subscription-constants";
 export const getUserPlan = async (): Promise<PlanType> => {
   const { has } = await auth();
 
-  const proCheck: any = { entitlement: "pro" };
-  const standardCheck: any = { entitlement: "standard" };
+  const proCheck = { plan: "pro" };
+  const standardCheck = { plan: "standard" };
 
-  if (has(proCheck)) {
+  if (has?.(proCheck)) {
     return "pro";
   }
 
-  if (has(standardCheck)) {
+  if (has?.(standardCheck)) {
     return "standard";
   }
 
