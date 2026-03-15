@@ -5,8 +5,9 @@ import { ArrowLeft } from "lucide-react";
 export default function SubscriptionsPage() {
   return (
     <div className="clerk-subscriptions relative py-12">
-      <Link href="/" className="back-btn-floating">
-        <ArrowLeft className="size-6 text-[#212a3b]" />
+      <Link href="/" className="back-btn-floating" aria-label="Back to home">
+        <ArrowLeft className="size-6 text-[`#212a3b`]" aria-hidden="true" />
+        <span className="sr-only">Back to home</span>
       </Link>
       
       <div className="max-w-5xl mx-auto flex flex-col items-center px-4 w-full">
