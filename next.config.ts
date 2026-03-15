@@ -5,7 +5,13 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   serverExternalPackages: ["mongoose"],
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "covers.openlibrary.org" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "covers.openlibrary.org" },
+      {
+        protocol: "https",
+        hostname: "valz0nwmwuexzlu4.public.blob.vercel-storage.com",
+      },
+    ],
   },
 };
 
