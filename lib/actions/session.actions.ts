@@ -20,9 +20,10 @@ export const startVoiceSession = async (
     const limits = PLAN_LIMITS[plan];
     const billingPeriodStart = getCurrentBillingPeriodStart();
 
+    const billingPeriodEnd = new Date(billingPeriodStart.getFullYear(), billingPeriodStart.getMonth() + 1, 1);
     const sessionCount = await VoiceSession.countDocuments({
       clerkId,
-      billingPeriodStart,
+      startedAt: { $gte: billingPeriodStart, $lt: billingPeriodEnd },
     });
 
     if (sessionCount >= limits.maxSessionsPerMonth) {
